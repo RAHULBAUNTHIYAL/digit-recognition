@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas App</title>
+</head>
+<body>
+    <h1>Canvas App</h1>
+
+    <div>
+        <h2>Canvas Drawing</h2>
+        <canvas id="digitCanvas" width="400" height="400" style="border:1px solid; background-color: black;"></canvas>
+        <label for="lineWidth">Line Width:</label>
+        <input type="number" id="lineWidth" value="12" min="12" max="12">
+        <button onclick="saveCanvas()">Save Canvas</button>
+        <button onclick="predictDigit()">Predict Digit</button>
+        <button onclick="clearCanvas()">Clear Canvas</button>
+    </div>
+
+<script>
+    var canvas = document.getElementById('digitCanvas');
+    var ctx = canvas.getContext('2d');
+    var isDrawing = false;
+
+    function draw(event) {
+        if (!isDrawing) return;
+
+        var lineWidthInPixels = parseFloat(document.getElementById('lineWidth').value);
+        var x = event.clientX - canvas.getBoundingClientRect().left;
+        var y = event.clientY - canvas.getBoundingClientRect().top;
+
+        // Simulate oil brush effect with random colors and jitter
+        var oilBrushSize = 20;
+        for (var i = 0; i < oilBrushSize; i++) {
+            var jitterX = Math.random() * 2 - 1;
+            var jitterY = Math.random() * 2 - 1;
+            var colorIntensity = Math.random() * 0.2 + 0.8;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + colorIntensity + ')';
+            ctx.fillRect(x + jitterX * lineWidthInPixels, y + jitterY * lineWidthInPixels, lineWidthInPixels, lineWidthInPixels);
+        }
+    }
+
+    function startDrawing(event) {
+        isDrawing = true;
+        draw(event);
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveCanvas() {
+        var canvasData = canvas.toDataURL();
+
+        fetch('/canvas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'canvas_data=' + encodeURIComponent(canvasData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function predictDigit() {
+        var canvasData = canvas.toDataURL();
+
+        // Perform client-side preprocessing
+        var img = new Image();
+        img.src = canvasData;
+        img.onload = function () {
+            var preprocessingCanvas = document.createElement('canvas');
+            preprocessingCanvas.width = 28;
+            preprocessingCanvas.height = 28;
+
+            var ctx = preprocessingCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 28, 28);
+
+            // Get image data
+            var imageData = ctx.getImageData(0, 0, 28, 28).data;
+
+            // Preprocess the data (grayscale, normalize)
+            var newData = [];
+            for (var i = 0; i < imageData.length; i += 4) {
+                var grayscaleValue = (imageData[i] + imageData[i + 1] + imageData[i + 2]) / 3.0;
+                newData.push(grayscaleValue / 255.0);
+            }
+
+            // Send the preprocessed data to the server for prediction
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Use JSON
+                },
+                body: JSON.stringify({ 'canvas_data': newData }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Predicted Digit: ' + data.predicted_class);
+                })
+                .catch(error => console.error('Error:', error));
+        };
+    }
+
+
+
+
+
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+</script>
+</body>
+</html>
