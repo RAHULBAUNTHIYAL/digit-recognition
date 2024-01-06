@@ -1,0 +1,9 @@
+Pillow
+flask_cors
+flask
+tensorflow
+matplotlib
+numpy
+opencv-python
+jupyter
+ipykernel
