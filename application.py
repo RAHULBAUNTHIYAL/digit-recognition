@@ -1,3 +1,6 @@
+
+
+
 from flask import Flask, render_template, request, jsonify
 import os
 import base64
@@ -6,8 +9,10 @@ import tensorflow as tf
 import numpy as np
 from datetime import datetime
 
+
 application=Flask(__name__)
 app=application
+
 # Load the saved model
 loaded_model = tf.keras.models.load_model("mnist_model.h5")
 # Ensure that the 'static/canvas' directory exists
